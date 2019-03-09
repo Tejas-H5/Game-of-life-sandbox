@@ -1,6 +1,9 @@
 //----------------------------------------------------
 //yet another Conway's game of life implementation 
 //by Tejas Hegde
+//It's been implemented slightly differently. placing cells will update a map that maintains the number of surrounding pixels
+//this significalntly reduces the number of checks required
+//
 //the only noteable difference is the way you place cells, althought I'm sure
 //that's been done before as well x
 //-----------------------------------------------------
@@ -11,10 +14,9 @@ color foregroundColor = color(255);
 color cursorColor = color(0,255,0);
 color cursorPausedColor = color(255,0,0);
 
-//cell grid, the bigger the better. except that lag = GRIDSIZE^2. I can only handle ~700 :(
-final int GRIDSIZE = 1000;
-//char[][] grid;//I made it a square for simplicity's sake
-char[] grid;
+final int GRIDSIZE = 700;
+byte[] grid;
+byte[] surroundingMap;//a speed optimization
 float sW;//width of each individual square cell
 
 //Existing patterns are taken from this github sourcecode -> https://github.com/maniere/Game-of-Life/tree/master/Game-of-Life_full
@@ -71,12 +73,13 @@ void loadPatterns(){
 
 void setup(){
   size(700,700);
-  grid = new char[(GRIDSIZE)*(GRIDSIZE)];
+  grid = new byte[(GRIDSIZE)*(GRIDSIZE)];
+  surroundingMap = new byte[grid.length];
+  
   sW = 10;
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){
-      //grid[x][y] = '0';
-      grid[x+GRIDSIZE*y]='0';
+      grid[x+GRIDSIZE*y]=0;
     }
   }
   textSize(16);
@@ -107,7 +110,7 @@ void adjustView(float xAmount, float yAmount, float scaleAmount){
   float sensitivity = 1.0/scale;
   xPos=constrain(xPos+xAmount*sensitivity,0,GRIDSIZE*sW);
   yPos=constrain(yPos+yAmount*sensitivity,0,GRIDSIZE*sW);
-  scale=constrain(scale+scaleAmount*scale,0.1,10);
+  scale=constrain(scale+scaleAmount*scale,0.01,10);
 }
 
 //----------SCREEN TO WORLD SPACE CONVERSION----------
@@ -306,62 +309,9 @@ int toGridCoord(float c){
 
 //----------NUMBER SURROUNDING----------
 
-int numSurrounding(int x, int y){
-  int sum = 0;
-  /*
-  for(int i = -1; i <= 1; i++){
-    for(int j = -1; j <= 1; j++){
-      if((i==0)&&(j==0)){
-        continue;
-      }
-      
-      char state = getCell(x+i,y+j);
-      if((state=='1')||(state=='2')){
-        sum++;
-      }
-    }
-  }
-  */
-  char state = getCell(x-1,y-1);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x-1,y);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x-1,y+1);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x,y-1);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x,y+1);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x+1,y-1);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x+1,y);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  
-  state = getCell(x+1,y+1);
-  if((state=='1')||(state=='2')){
-    sum++;
-  }
-  return sum;
+boolean checkState(byte cellState){
+  //return ((cellState&0x0F)==(0x02))||((cellState&0x0F)==(0x01));
+  return (cellState==1)||(cellState==2);
 }
 
 /* for personal reference:
@@ -379,20 +329,20 @@ int numSurrounding(int x, int y){
   if a cell has over 3 living cells around it, it dies of overpopulation
   */
 void doSimulation(int x, int y){
-  int s = numSurrounding(x,y);
+  byte s = surroundingMap[x+(y*GRIDSIZE)];
   int index = x+(GRIDSIZE*y);
   
-  if(s < 2){
-    if(grid[index]=='1'){
-      grid[index] = '2';
+  if(s < 0x02){
+    if(grid[index]==1){
+      grid[index] = 2;
     }
-  } else if(s==3){
-    if(grid[index]=='0'){
-      grid[index] = '3';
+  } else if(s==0x03){
+    if(grid[index]==0){
+      grid[index] = 3;
     }
-  } else if(s > 3){
-    if(grid[index]=='1'){
-      grid[index] = '2';
+  } else if(s > 0x03){
+    if(grid[index]==1){
+      grid[index] = 2;
     }
   }
 }
@@ -424,13 +374,35 @@ void setState(float screenX, float screenY, boolean val){
   setCell(x,y,val); 
 }
 
+void addSurrounding(int x, int y, boolean val){
+  int delta = val ? 1 : -1;
+  for(int i = -1; i <= 1; i++){
+    for(int j = -1; j <= 1; j++){
+      if((i==0)&&(j==0)){
+        continue;
+      }
+      
+      int x1 = wrap(x+i,0,GRIDSIZE);
+      int y1 = wrap(y+j,0,GRIDSIZE);
+      
+      surroundingMap[x1+(y1*GRIDSIZE)]+=delta;
+    }
+  }
+}
+
+//--------------- SET CELL ------------------
+
 void setCell(int x, int y,boolean val){
   x=wrap(x,0,GRIDSIZE);
   y=wrap(y,0,GRIDSIZE);
-  grid[x+(GRIDSIZE*y)] = val ? '1' : '0';
+  int index = x+(GRIDSIZE*y);
+  if(checkState(grid[index])!=val){
+    grid[index] = (val ? byte(0x01) : byte(0x00));
+    addSurrounding(x,y,val);
+  }
 }
 
-char getCell(int x, int y){
+byte getCell(int x, int y){
   x=wrap(x,0,GRIDSIZE);
   y=wrap(y,0,GRIDSIZE);
   return grid[x+(GRIDSIZE*y)];
@@ -554,22 +526,20 @@ void drawCell(int x, int y){
 void drawState(){
   fill(foregroundColor);
   stroke(foregroundColor);
-  //draw grid
+
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){
       int index = x+(GRIDSIZE*y);
-      if(grid[index]=='0')
+      if(grid[index]==0)
         continue;
       
-      if(grid[index]=='2'){
-        grid[index]='0';
-      } else if (grid[index]=='3'){
-        grid[index]='1';
-        drawCell(x,y);
-        continue;
+      if(grid[index]==2){
+        setCell(x,y,false);
+      } else if (grid[index]==3){
+        setCell(x,y,true);
       }
       
-      if(grid[index]=='1'){
+      if(grid[index]==1){
         drawCell(x,y);
       }
     }
