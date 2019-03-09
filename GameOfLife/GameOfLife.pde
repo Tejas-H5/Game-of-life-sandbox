@@ -1,7 +1,8 @@
 //----------------------------------------------------
 //yet another Conway's game of life implementation 
 //by Tejas Hegde
-//They will be commented as such
+//the only noteable difference is the way you place cells, althought I'm sure
+//that's been done before as well x
 //-----------------------------------------------------
 
 //UI Colors
@@ -10,20 +11,13 @@ color foregroundColor = color(255);
 color cursorColor = color(0,255,0);
 color cursorPausedColor = color(255,0,0);
 
-<<<<<<< HEAD
 //cell grid, the bigger the better. except that lag = GRIDSIZE^2
 final int GRIDSIZE = 1000;
 //char[][] grid;//I made it a square for simplicity's sake
 char[] grid;
 float sW;//width of each individual square cell
-=======
-//cell grid
-final int GRIDSIZE = 500;
-char[][] grid;//I made it a square for simplicity's sake
-float sW;//squareWidth
->>>>>>> parent of 46f0dca... Various slight improvements
 
-//Existing patterns are taken from maniere's github sourcecode -> https://github.com/maniere/Game-of-Life/tree/master/Game-of-Life_full
+//Existing patterns are taken from this github sourcecode -> https://github.com/maniere/Game-of-Life/tree/master/Game-of-Life_full
 //I've converted them to coordinate pairs using my own code from elsewhere and put them into a text file because they were causing problems here (error 66355)
 //each odd index is an x coordinate, and each even one is a y coordinate, centered around their width and height
 //the final 3 integers represent the number of coordinate pairs, the pattern width and the pattern height.
@@ -35,16 +29,17 @@ class Pattern{
 int currentPatternIndex = 0;
 int patternRotation = 0;
 boolean flipPattern = false;
-
 Pattern[] patterns;
+
+//----------EXTRACT PATTERN----------
 
 Pattern extractPattern(String code){
   Pattern p = new Pattern();
-  //initialize the name
+  //initialize the name reading from the front
   int index = code.indexOf(',',0);
   p.name = code.substring(0,index);
   
-  //get the number of points, and their widths and heights
+  //get the width, height, and number of points by reading the back of the string
   int endIndex = code.lastIndexOf(',');
   p.h = int(code.substring(endIndex+1,code.length()));
   p.w = int(code.substring(code.lastIndexOf(',',endIndex-1)+1,endIndex));
@@ -52,7 +47,7 @@ Pattern extractPattern(String code){
   int numPoints = int(code.substring(code.lastIndexOf(',',endIndex-1)+1, endIndex));
   p.points = new int[numPoints*2];
   
-  //get the points
+  //get the points themselves by continuing to reading forwards
   for(int i = 0; i < p.points.length; i++){
     int startIndex = index;
     index = code.indexOf(',',index+1);
@@ -62,6 +57,8 @@ Pattern extractPattern(String code){
   return p;
 }
 
+//----------LOAD PATTERNS----------
+
 void loadPatterns(){
   String[] lines = loadStrings("patterns.txt");
   patterns = new Pattern[lines.length];
@@ -69,6 +66,8 @@ void loadPatterns(){
     patterns[i] = extractPattern(lines[i]);
   }
 }
+
+//----------SETUP----------
 
 void setup(){
   size(700,700);
@@ -103,6 +102,8 @@ float viewSpeed = 5;
 float zoomSpeed = 0.1;
 int zoomDir = 0;
 
+//----------ADJUST VIEW----------
+
 void adjustView(float xAmount, float yAmount, float scaleAmount){
   float sensitivity = 1.0/scale;
   xPos=constrain(xPos+xAmount*sensitivity,0,GRIDSIZE*sW);
@@ -110,7 +111,8 @@ void adjustView(float xAmount, float yAmount, float scaleAmount){
   scale=constrain(scale+scaleAmount*scale,0.1,10);
 }
 
-//vital helper functions
+//----------SCREEN TO WORLD SPACE CONVERSION----------
+
 float toWorldX(float screenX){
   return ((screenX-width/2)/scale)+xPos;
 }
@@ -126,6 +128,8 @@ float toWorldY(float screenY){
 float mouseYPos(){
   return toWorldY(mouseY);
 }
+
+//----------VOID DRAW----------
 
 void draw(){
   if(shiftPressed){
@@ -177,6 +181,8 @@ void draw(){
   noFill();
   drawBrush();
 }
+
+//----------KEY PRESSED----------
 
 void keyPressed(){
   switch(keyCode){
@@ -239,16 +245,7 @@ void keyPressed(){
   }
 }
 
-void mouseWheel(MouseEvent e){
-  if(shiftPressed){
-    brushRotation += e.getCount()*PI/60f;
-    if(brushType==CUSTOMSHAPES){      
-      patternRotation=wrap(patternRotation+1,-1,3);
-    }
-  }else{
-    brushRadius=constrain(brushRadius-ceil(scale)*e.getCount(),1,GRIDSIZE);
-  }
-}
+//----------KEY RELEASED----------
 
 void keyReleased(){  
   switch(keyCode){
@@ -264,6 +261,21 @@ void keyReleased(){
   }
 }
 
+//----------MOUSE WHEEL----------
+
+void mouseWheel(MouseEvent e){
+  if(shiftPressed){
+    brushRotation += e.getCount()*PI/60f;
+    if(brushType==CUSTOMSHAPES){      
+      patternRotation=wrap(patternRotation+1,0,4);
+    }
+  }else{
+    brushRadius=constrain(brushRadius-ceil(scale)*e.getCount(),1,GRIDSIZE);
+  }
+}
+
+//----------INSTRUCTIONS----------
+
 boolean useInstructions = true;
 String[] instructions = {
   "[I] to toggle instructions",
@@ -277,6 +289,8 @@ String[] instructions = {
   "[Spacebar] to resume and pause the simulation"
 };
 
+//----------DRAW INSTRUCTIONS----------
+
 void drawInstructions(){
   float spacing = 17;
   textAlign(CENTER);
@@ -285,9 +299,13 @@ void drawInstructions(){
   }
 }
 
+//----------WORLD TO GRID CONVERSION----------
+
 int toGridCoord(float c){
   return floor(c/sW);
 }
+
+//----------NUMBER SURROUNDING----------
 
 int numSurrounding(int x, int y){
   int sum = 0;
@@ -298,7 +316,7 @@ int numSurrounding(int x, int y){
       }
       
       char state = getCell(x+i,y+j);
-      if(state=='1'||state=='2'){
+      if((state=='1')||(state=='2')){
         sum++;
       }
     }
@@ -313,6 +331,8 @@ int numSurrounding(int x, int y){
 3 : was dead
 */
 
+//----------SINGLE SIMULATION STEP----------
+
 void doSimulation(int x, int y){
   int s = numSurrounding(x,y);
   /* Conway's rules
@@ -325,23 +345,16 @@ void doSimulation(int x, int y){
     if(grid[index]=='1'){
       grid[index] = '2';
     }
-<<<<<<< HEAD
   } else if(s==3){
     grid[index] = '3';
-=======
-  } else if((s==2)||(s==3)){
-    if(s==3){
-      if(grid[x][y]=='0'){
-        grid[x][y] = '3';
-      }
-    }
->>>>>>> parent of 46f0dca... Various slight improvements
   } else if(s > 3){
     if(grid[index]=='1'){
       grid[index] = '2';
     }
   }
 }
+
+//----------SIMULATE ALL CELLS----------
 
 void updateState(){
   //apply rules to each cell based on a ruleset
@@ -364,14 +377,13 @@ void updateState(){
   }
 }
 
+//----------TRIVIAL FUNCTIONS----------
+
 int wrap(int val, int min, int max){
-  if(val > max){
-    return abs(val-max)%abs(min-max)+min;
-  } else if (val < min){
-    return max - abs(val-min)%abs(min-max);
-  } else {
-    return val;
-  }
+  if (val < min)
+      return max - (min - val) % (max - min);
+  else
+      return min + (val - min) % (max - min);
 }
 
 void setState(float screenX, float screenY, boolean val){
@@ -512,15 +524,9 @@ void drawState(){
   fill(foregroundColor);
   stroke(foregroundColor);
   //draw grid
-<<<<<<< HEAD
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){  
       if(grid[x+GRIDSIZE*y]=='1'){
-=======
-  for(int x = 0; x < grid.length; x++){
-    for(int y = 0; y < grid[0].length;y++){      
-      if(grid[x][y]=='1'){
->>>>>>> parent of 46f0dca... Various slight improvements
         drawCell(x,y);
       }
     }
