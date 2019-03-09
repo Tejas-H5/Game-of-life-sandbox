@@ -12,7 +12,7 @@ color cursorColor = color(0,255,0);
 color cursorPausedColor = color(255,0,0);
 
 //cell grid, the bigger the better. except that lag = GRIDSIZE^2
-final int GRIDSIZE = 1000;
+final int GRIDSIZE = 300;
 //char[][] grid;//I made it a square for simplicity's sake
 char[] grid;
 float sW;//width of each individual square cell
@@ -77,7 +77,7 @@ void setup(){
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){
       //grid[x][y] = '0';
-      grid[x+GRIDSIZE*y]=0;
+      grid[x+GRIDSIZE*y]='0';
     }
   }
   textSize(16);
@@ -333,20 +333,23 @@ int numSurrounding(int x, int y){
 
 //----------SINGLE SIMULATION STEP----------
 
-void doSimulation(int x, int y){
-  int s = numSurrounding(x,y);
-  /* Conway's rules
+/* the rules:
   if a cell has fewer than 2 cells around it, it dies of isolation
   if a cell has 3 living cells aroun it, it comes to life
   if a cell has over 3 living cells around it, it dies of overpopulation
   */
-  int index = x+GRIDSIZE*y;
+void doSimulation(int x, int y){
+  int s = numSurrounding(x,y);
+  int index = x+(GRIDSIZE*y);
+  
   if(s < 2){
     if(grid[index]=='1'){
       grid[index] = '2';
     }
   } else if(s==3){
-    grid[index] = '3';
+    if(grid[index]=='0'){
+      grid[index] = '3';
+    }
   } else if(s > 3){
     if(grid[index]=='1'){
       grid[index] = '2';
@@ -365,14 +368,11 @@ void updateState(){
   }
   
   //collapse the in-between states like 2 and 3 to 1 and 0
-  for(int x = 0; x < GRIDSIZE; x++){
-    for(int y = 0; y < GRIDSIZE;y++){
-      int index = x+GRIDSIZE*y;
-      if(grid[index]=='2'){
-        grid[index]='0';
-      } else if (grid[index]=='3'){
-        grid[index]='1';
-      }
+  for(int i = 0; i < grid.length; i++){
+    if(grid[i]=='2'){
+      grid[i]='0';
+    } else if (grid[i]=='3'){
+      grid[i]='1';
     }
   }
 }
@@ -394,15 +394,15 @@ void setState(float screenX, float screenY, boolean val){
 }
 
 void setCell(int x, int y,boolean val){
-  x=wrap(x,0,GRIDSIZE-1);
-  y=wrap(y,0,GRIDSIZE-1);
-  grid[x+GRIDSIZE*y] = val ? '1' : '0';
+  x=wrap(x,0,GRIDSIZE);
+  y=wrap(y,0,GRIDSIZE);
+  grid[x+(GRIDSIZE*y)] = val ? '1' : '0';
 }
 
 char getCell(int x, int y){
-  x=wrap(x,0,GRIDSIZE-1);
-  y=wrap(y,0,GRIDSIZE-1);
-  return grid[x+GRIDSIZE*y];
+  x=wrap(x,0,GRIDSIZE);
+  y=wrap(y,0,GRIDSIZE);
+  return grid[x+(GRIDSIZE*y)];
 }
 
 float sqrMagnitude(float x1, float x2){
@@ -526,7 +526,7 @@ void drawState(){
   //draw grid
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){  
-      if(grid[x+GRIDSIZE*y]=='1'){
+      if(grid[x+(GRIDSIZE*y)]=='1'){
         drawCell(x,y);
       }
     }
