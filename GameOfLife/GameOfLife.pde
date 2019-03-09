@@ -13,7 +13,8 @@ color cursorPausedColor = color(255,0,0);
 
 //cell grid, the bigger the better. except that lag = GRIDSIZE^2
 final int GRIDSIZE = 1000;
-char[][] grid;//I made it a square for simplicity's sake
+//char[][] grid;//I made it a square for simplicity's sake
+char[] grid;
 float sW;//width of each individual square cell
 
 //Existing patterns are taken from this github sourcecode -> https://github.com/maniere/Game-of-Life/tree/master/Game-of-Life_full
@@ -70,11 +71,13 @@ void loadPatterns(){
 
 void setup(){
   size(700,700);
-  grid = new char[GRIDSIZE][GRIDSIZE];
+  //grid = new char[GRIDSIZE][GRIDSIZE];
+  grid = new char[GRIDSIZE*GRIDSIZE];
   sW = 10;
-  for(int x = 0; x < grid.length; x++){
-    for(int y = 0; y < grid[0].length;y++){
-      grid[x][y] = '0';
+  for(int x = 0; x < GRIDSIZE; x++){
+    for(int y = 0; y < GRIDSIZE;y++){
+      //grid[x][y] = '0';
+      grid[x+GRIDSIZE*y]=0;
     }
   }
   textSize(16);
@@ -337,15 +340,16 @@ void doSimulation(int x, int y){
   if a cell has 3 living cells aroun it, it comes to life
   if a cell has over 3 living cells around it, it dies of overpopulation
   */
+  int index = x+GRIDSIZE*y;
   if(s < 2){
-    if(grid[x][y]=='1'){
-      grid[x][y] = '2';
+    if(grid[index]=='1'){
+      grid[index] = '2';
     }
   } else if(s==3){
-    grid[x][y] = '3';
+    grid[index] = '3';
   } else if(s > 3){
-    if(grid[x][y]=='1'){
-      grid[x][y] = '2';
+    if(grid[index]=='1'){
+      grid[index] = '2';
     }
   }
 }
@@ -354,19 +358,20 @@ void doSimulation(int x, int y){
 
 void updateState(){
   //apply rules to each cell based on a ruleset
-  for(int x = 0; x < grid.length; x++){
-    for(int y = 0; y < grid[0].length;y++){
+  for(int x = 0; x < GRIDSIZE; x++){
+    for(int y = 0; y < GRIDSIZE;y++){
       doSimulation(x,y);
     }
   }
   
   //collapse the in-between states like 2 and 3 to 1 and 0
-  for(int x = 0; x < grid.length; x++){
-    for(int y = 0; y < grid[0].length;y++){
-      if(grid[x][y]=='2'){
-        grid[x][y]='0';
-      } else if (grid[x][y]=='3'){
-        grid[x][y]='1';
+  for(int x = 0; x < GRIDSIZE; x++){
+    for(int y = 0; y < GRIDSIZE;y++){
+      int index = x+GRIDSIZE*y;
+      if(grid[index]=='2'){
+        grid[index]='0';
+      } else if (grid[index]=='3'){
+        grid[index]='1';
       }
     }
   }
@@ -391,13 +396,13 @@ void setState(float screenX, float screenY, boolean val){
 void setCell(int x, int y,boolean val){
   x=wrap(x,0,GRIDSIZE-1);
   y=wrap(y,0,GRIDSIZE-1);
-  grid[x][y] = val ? '1' : '0';
+  grid[x+GRIDSIZE*y] = val ? '1' : '0';
 }
 
 char getCell(int x, int y){
   x=wrap(x,0,GRIDSIZE-1);
   y=wrap(y,0,GRIDSIZE-1);
-  return grid[x][y];
+  return grid[x+GRIDSIZE*y];
 }
 
 float sqrMagnitude(float x1, float x2){
@@ -519,9 +524,9 @@ void drawState(){
   fill(foregroundColor);
   stroke(foregroundColor);
   //draw grid
-  for(int x = 0; x < grid.length; x++){
-    for(int y = 0; y < grid[0].length;y++){  
-      if(grid[x][y]=='1'){
+  for(int x = 0; x < GRIDSIZE; x++){
+    for(int y = 0; y < GRIDSIZE;y++){  
+      if(grid[x+GRIDSIZE*y]=='1'){
         drawCell(x,y);
       }
     }
