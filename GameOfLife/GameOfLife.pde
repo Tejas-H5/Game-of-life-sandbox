@@ -11,8 +11,8 @@ color foregroundColor = color(255);
 color cursorColor = color(0,255,0);
 color cursorPausedColor = color(255,0,0);
 
-//cell grid, the bigger the better. except that lag = GRIDSIZE^2
-final int GRIDSIZE = 300;
+//cell grid, the bigger the better. except that lag = GRIDSIZE^2. I can only handle ~700 :(
+final int GRIDSIZE = 1000;
 //char[][] grid;//I made it a square for simplicity's sake
 char[] grid;
 float sW;//width of each individual square cell
@@ -71,8 +71,7 @@ void loadPatterns(){
 
 void setup(){
   size(700,700);
-  //grid = new char[GRIDSIZE][GRIDSIZE];
-  grid = new char[GRIDSIZE*GRIDSIZE];
+  grid = new char[(GRIDSIZE)*(GRIDSIZE)];
   sW = 10;
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){
@@ -309,6 +308,7 @@ int toGridCoord(float c){
 
 int numSurrounding(int x, int y){
   int sum = 0;
+  /*
   for(int i = -1; i <= 1; i++){
     for(int j = -1; j <= 1; j++){
       if((i==0)&&(j==0)){
@@ -320,6 +320,46 @@ int numSurrounding(int x, int y){
         sum++;
       }
     }
+  }
+  */
+  char state = getCell(x-1,y-1);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x-1,y);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x-1,y+1);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x,y-1);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x,y+1);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x+1,y-1);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x+1,y);
+  if((state=='1')||(state=='2')){
+    sum++;
+  }
+  
+  state = getCell(x+1,y+1);
+  if((state=='1')||(state=='2')){
+    sum++;
   }
   return sum;
 }
@@ -364,15 +404,6 @@ void updateState(){
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){
       doSimulation(x,y);
-    }
-  }
-  
-  //collapse the in-between states like 2 and 3 to 1 and 0
-  for(int i = 0; i < grid.length; i++){
-    if(grid[i]=='2'){
-      grid[i]='0';
-    } else if (grid[i]=='3'){
-      grid[i]='1';
     }
   }
 }
@@ -525,8 +556,20 @@ void drawState(){
   stroke(foregroundColor);
   //draw grid
   for(int x = 0; x < GRIDSIZE; x++){
-    for(int y = 0; y < GRIDSIZE;y++){  
-      if(grid[x+(GRIDSIZE*y)]=='1'){
+    for(int y = 0; y < GRIDSIZE;y++){
+      int index = x+(GRIDSIZE*y);
+      if(grid[index]=='0')
+        continue;
+      
+      if(grid[index]=='2'){
+        grid[index]='0';
+      } else if (grid[index]=='3'){
+        grid[index]='1';
+        drawCell(x,y);
+        continue;
+      }
+      
+      if(grid[index]=='1'){
         drawCell(x,y);
       }
     }
