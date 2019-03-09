@@ -15,16 +15,18 @@ final int GRIDSIZE = 500;
 char[][] grid;//I made it a square for simplicity's sake
 float sW;//squareWidth
 
-int currentPatternIndex = 0;
 //Existing patterns are taken from maniere's github sourcecode -> https://github.com/maniere/Game-of-Life/tree/master/Game-of-Life_full
 //I've converted them to coordinate pairs using my own code from elsewhere and put them into a text file because they were causing problems here (error 66355)
 //each odd index is an x coordinate, and each even one is a y coordinate, centered around their width and height
-//the final two xy coordinates represent a width and a height. I decided to leave them in since they might be useful
+//the final 3 integers represent the number of coordinate pairs, the pattern width and the pattern height.
 class Pattern{
   int[] points;
   int w,h;
   String name;
 }
+int currentPatternIndex = 0;
+int patternRotation = 0;
+boolean flipPattern = false;
 
 Pattern[] patterns;
 
@@ -216,6 +218,11 @@ void keyPressed(){
       }
       break;
     }
+    case('f'):
+    case('F'):{
+        flipPattern=!flipPattern;
+      break;
+    }
     case(SHIFT):{
       shiftPressed=true;
     }
@@ -225,6 +232,9 @@ void keyPressed(){
 void mouseWheel(MouseEvent e){
   if(shiftPressed){
     brushRotation += e.getCount()*PI/60f;
+    if(brushType==CUSTOMSHAPES){      
+      patternRotation=wrap(patternRotation+1,-1,3);
+    }
   }else{
     brushRadius=constrain(brushRadius-ceil(scale)*e.getCount(),1,GRIDSIZE);
   }
@@ -259,6 +269,7 @@ String[] instructions = {
 
 void drawInstructions(){
   float spacing = 17;
+  textAlign(CENTER);
   for(int i = 0; i < instructions.length; i++){
     text(instructions[i],mouseX,mouseY+i*spacing + 100);
   }
@@ -423,20 +434,36 @@ void drawBrush(){
       break;
     } case CUSTOMSHAPES:{
       Pattern cur = patterns[currentPatternIndex];
+      int patternSize = max(cur.w,cur.h);
       float xLoc = mouseXPos();
-      float yLoc = mouseYPos()-(cur.h*sW)/2-sW*3;
+      float yLoc = mouseYPos()-(patternSize*sW)/2-sW*3;
       textAlign(CENTER);
       if(!play){
         text("pattern "+(currentPatternIndex+1)+"/"+patterns.length ,xLoc,yLoc-17);
         text("<-[Q] "+cur.name+" [E]->" ,xLoc,yLoc);
+        textAlign(RIGHT);
+        text("Shift+mouseWheel to rotate", xLoc-(patternSize+2)*sW/2.0, mouseYPos());
+        textAlign(LEFT);
+        text("[F]lip", xLoc+(patternSize+2)*sW/2.0, mouseYPos());
       } else {
         text("Pause the simulation for this to place properly" ,xLoc,yLoc);
       }
       
       for(int i = 0; i < cur.points.length-1;i+=2){
-        int xLoc2 = toGridCoord(mouseXPos())+cur.points[i];
-        int yLoc2 = toGridCoord(mouseYPos())-cur.points[i+1];
+        //draw the cells
+        int xOff = cur.points[i];
+        int yOff = cur.points[i+1];
+        int xOffs[] = {xOff,yOff,-xOff,-yOff};
+        int yOffs[] = {yOff,-xOff,-yOff,xOff};
+        xOff = xOffs[patternRotation];
+        yOff = yOffs[patternRotation];
+        if(flipPattern)
+          xOff = -xOff;
+          
+        int xLoc2 = toGridCoord(mouseXPos())+xOff;  
+        int yLoc2 = toGridCoord(mouseYPos())-yOff;
         drawCell(xLoc2, yLoc2);
+        //set the state if being used
         if(use){
           setCell(xLoc2,yLoc2,val);
         }
