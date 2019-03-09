@@ -47,7 +47,6 @@ Pattern extractPattern(String code){
     int startIndex = index;
     index = code.indexOf(',',index+1);
     String num = code.substring(startIndex+1,index);
-    println(num);
     p.points[i] = parseInt(num);
   }
   return p;
@@ -117,6 +116,12 @@ float mouseYPos(){
 }
 
 void draw(){
+  if(shiftPressed){
+    cursor(MOVE);
+  } else {
+    noCursor();
+  }
+  
   background(0);
   //change the view
   adjustView(0,0,zoomSpeed*zoomDir);
