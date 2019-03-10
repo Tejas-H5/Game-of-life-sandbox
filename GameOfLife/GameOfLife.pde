@@ -8,16 +8,18 @@
 //that's been done before as well x
 //-----------------------------------------------------
 
+//--------Feel free to change these--------
 //UI Colors
 color backgroundColor = color(0);
 color foregroundColor = color(255);
 color cursorColor = color(0,255,0);
 color cursorPausedColor = color(255,0,0);
-
 final int GRIDSIZE = 700;
+//-----------------------------------------
+
 byte[] grid;
+float sW = 10;//width of each individual square cell
 byte[] surroundingMap;//a speed optimization
-float sW;//width of each individual square cell
 
 //Existing patterns are taken from this github sourcecode -> https://github.com/maniere/Game-of-Life/tree/master/Game-of-Life_full
 //I've converted them to coordinate pairs using my own code from elsewhere and put them into a text file because they were causing problems here (error 66355)
@@ -76,20 +78,17 @@ void setup(){
   grid = new byte[(GRIDSIZE)*(GRIDSIZE)];
   surroundingMap = new byte[grid.length];
   
-  sW = 10;
   for(int x = 0; x < GRIDSIZE; x++){
     for(int y = 0; y < GRIDSIZE;y++){
       grid[x+GRIDSIZE*y]=0;
     }
-  }
-  textSize(16);
-  textAlign(CENTER);
-  
+  }  
   loadPatterns();
   
   xPos = GRIDSIZE*sW/2;
   yPos = xPos;
   drawState();
+  frameRate(120);
 }
 
 //simulation speed timing
@@ -110,7 +109,7 @@ void adjustView(float xAmount, float yAmount, float scaleAmount){
   float sensitivity = 1.0/scale;
   xPos=constrain(xPos+xAmount*sensitivity,0,GRIDSIZE*sW);
   yPos=constrain(yPos+yAmount*sensitivity,0,GRIDSIZE*sW);
-  scale=constrain(scale+scaleAmount*scale,0.01,10);
+  scale=constrain(scale+scaleAmount*scale,(width-10*sW)/(sW*GRIDSIZE),10);
 }
 
 //----------SCREEN TO WORLD SPACE CONVERSION----------
@@ -157,22 +156,32 @@ void draw(){
   scale(scale);
   translate(-xPos,-yPos);
   
-  noFill();
   stroke(foregroundColor);
+  noFill();
   rect(0,0,GRIDSIZE*sW,GRIDSIZE*sW);
+  
+  fill(foregroundColor);
+  textAlign(CENTER);
+  textSize(4*GRIDSIZE/sW);
+  text("The Game Of Life on a "+GRIDSIZE+"x"+GRIDSIZE +" wrap enabled grid", GRIDSIZE/2.0 * sW,-2*GRIDSIZE/sW);
+  textSize(12);
+  
   
   //do simulation every certain amount of frames
   if(frameNo == framesPerStep){
     updateState();
     frameNo = 0;
   } else {
-    if(play){
+    if(play&&(!(mousePressed&&(mouseButton==LEFT)))){
       frameNo++;
     }
   }
   //draw the state every frame
-  stroke(backgroundColor);
+  fill(foregroundColor);
+  noStroke();
   drawState();
+  
+  //draw brush
   if(play){
     stroke(cursorColor);
   } else {
@@ -431,26 +440,38 @@ void drawBrush(){
   boolean val = (mouseButton==LEFT);
   //draw the brush
   switch(brushType){
-    case XBRUSH:{
-      drawCell(toGridCoord(mouseXPos()),toGridCoord(mouseYPos()));
-      if(use){
-        setState(mouseXPos(), mouseYPos(), val);
+    case SQUAREBRUSH:{
+      if(brushRadius==1){
+        drawCell(toGridCoord(mouseXPos()),toGridCoord(mouseYPos()));
+        if(use){
+          setState(mouseXPos(),mouseYPos(),val);
+        }
+        break;
       }
+      
+      float Cos = cos(brushRotation);
+      float Sin = sin(brushRotation);
+      float x1 = brushRadius*sW*Cos;
+      float y1 = brushRadius*sW*Sin;
+     
+      drawCellLine(mouseXPos()+x1+y1,mouseYPos()+y1-x1,mouseXPos()+y1-x1,mouseYPos()-x1-y1,false,val);
+      drawCellLine(mouseXPos()+y1-x1,mouseYPos()-x1-y1,mouseXPos()-x1-y1,mouseYPos()-y1+x1,false,val);
+      drawCellLine(mouseXPos()-x1-y1,mouseYPos()-y1+x1,mouseXPos()-y1+x1,mouseYPos()+x1+y1,false,val);
+      drawCellLine(mouseXPos()-y1+x1,mouseYPos()+x1+y1,mouseXPos()+x1+y1,mouseYPos()+y1-x1,false,val);
+      
+      for(int i = -brushRadius; i <= brushRadius; i+= max(brushRadius/5,1)){
+        line(mouseXPos()-x1 - Sin*i*sW,mouseYPos()-y1 + Cos*i*sW,mouseXPos()+x1 - Sin*i*sW,mouseYPos()+y1 + Cos*i*sW);
+      }
+      noStroke();
+      for(int i = -brushRadius; i <= brushRadius; i++){
+        drawCellLine(mouseXPos()-x1 - Sin*i*sW,mouseYPos()-y1 + Cos*i*sW,mouseXPos()+x1 - Sin*i*sW,mouseYPos()+y1 + Cos*i*sW,use,val);
+      }
+
       break;
     } case LINEBRUSH:{
       float x1 = brushRadius*sW*cos(brushRotation);
       float y1 = brushRadius*sW*sin(brushRotation);
       drawCellLine(x1+mouseXPos(),y1+mouseYPos(),mouseXPos()-x1,mouseYPos()-y1,use,val);
-      break;
-    } case SQUAREBRUSH:{
-      float Cos = cos(brushRotation);
-      float Sin = sin(brushRotation);
-      float x1 = brushRadius*sW*Cos;
-      float y1 = brushRadius*sW*Sin;
-      drawCellLine(mouseXPos()+x1+y1,mouseYPos()+y1-x1,mouseXPos()+y1-x1,mouseYPos()-x1-y1,use,val);
-      drawCellLine(mouseXPos()+y1-x1,mouseYPos()-x1-y1,mouseXPos()-x1-y1,mouseYPos()-y1+x1,use,val);
-      drawCellLine(mouseXPos()-x1-y1,mouseYPos()-y1+x1,mouseXPos()-y1+x1,mouseYPos()+x1+y1,use,val);
-      drawCellLine(mouseXPos()-y1+x1,mouseYPos()+x1+y1,mouseXPos()+x1+y1,mouseYPos()+y1-x1,use,val);
       break;
     } case CIRCLEBRUSH:{
       float dTheta = 1.0/brushRadius;
@@ -470,16 +491,14 @@ void drawBrush(){
       float xLoc = mouseXPos();
       float yLoc = mouseYPos()-(patternSize*sW)/2-sW*3;
       textAlign(CENTER);
-      if(!play){
-        text("pattern "+(currentPatternIndex+1)+"/"+patterns.length ,xLoc,yLoc-17);
-        text("<-[Q] "+cur.name+" [E]->" ,xLoc,yLoc);
-        textAlign(RIGHT);
-        text("Shift+mouseWheel to rotate", xLoc-(patternSize+2)*sW/2.0, mouseYPos());
-        textAlign(LEFT);
-        text("[F]lip", xLoc+(patternSize+2)*sW/2.0, mouseYPos());
-      } else {
-        text("Pause the simulation for this to place properly" ,xLoc,yLoc);
-      }
+      textSize(16);
+      text("pattern "+(currentPatternIndex+1)+"/"+patterns.length ,xLoc,yLoc-17);
+      text("<-[Q] "+cur.name+" [E]->" ,xLoc,yLoc);
+      textAlign(RIGHT);
+      text("Shift+mouseWheel to rotate", xLoc-(patternSize+2)*sW/2.0, mouseYPos());
+      textAlign(LEFT);
+      text("[F]lip", xLoc+(patternSize+2)*sW/2.0, mouseYPos());
+      textSize(12);
       
       for(int i = 0; i < cur.points.length-1;i+=2){
         //draw the cells
@@ -506,21 +525,20 @@ void drawBrush(){
 }
 
 int brushType = 0;
-int brushRadius = 5;
+int brushRadius = 1;
 float brushRotation = 0;
 
-final int XBRUSH = 0;
+final int SQUAREBRUSH = 0;
 final int LINEBRUSH = 1;
-final int SQUAREBRUSH = 2;
-final int CIRCLEBRUSH = 3;
-final int CUSTOMSHAPES = 4;
-final int numBrushShapes = 5;
+final int CIRCLEBRUSH = 2;
+final int CUSTOMSHAPES = 3;
+final int numBrushShapes = 4;
 
 boolean play = false;
 boolean shiftPressed = false;
 
 void drawCell(int x, int y){
-  rect(x*sW,y*sW,sW,sW);
+  rect(x*sW-1,y*sW-1,sW+1,sW+1);
 }
 
 void drawState(){
