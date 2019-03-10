@@ -1,4 +1,4 @@
-#Patterns.txt
+# Patterns.txt
 
 In the scetch data folder, you will find a text file named "patterns.txt" that contains all of the patterns you can spawn at runtime.
 Each line denotes a different pattern. It's not easy to add custom patterns at the moment, but you can do this by creating a new line, and then following this format:
