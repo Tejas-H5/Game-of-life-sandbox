@@ -1,0 +1,2 @@
+GridSize (change it if it lags or if it isnt enough):
+700

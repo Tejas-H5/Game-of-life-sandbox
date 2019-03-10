@@ -30,9 +30,10 @@ int backgroundColor = color(0);
 int foregroundColor = color(255);
 int cursorColor = color(0,255,0);
 int cursorPausedColor = color(255,0,0);
-final int GRIDSIZE = 700;
 //-----------------------------------------
 
+//Change this in the text file in the data folder instead of here
+int GRIDSIZE = 100;
 byte[] grid;
 float sW = 10;//width of each individual square cell
 byte[] surroundingMap;//a speed optimization
@@ -87,9 +88,21 @@ public void loadPatterns(){
   }
 }
 
+//----------LOAD PREFERENCES ----------
+public void loadPrefs(){
+  String[] lines = loadStrings("prefs.txt");
+  try{
+    GRIDSIZE = PApplet.parseInt(lines[1]);
+  } catch(Exception e){
+    //do nothing
+    println(e.getMessage());
+  }
+}
+
 //----------SETUP----------
 
 public void setup(){
+  loadPrefs();
   
   grid = new byte[(GRIDSIZE)*(GRIDSIZE)];
   surroundingMap = new byte[grid.length];
@@ -579,7 +592,7 @@ public void drawState(){
     }
   }
 }
-  public void settings() {  size(700,700); }
+  public void settings() {  size(800,600); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "GameOfLife" };
     if (passedArgs != null) {

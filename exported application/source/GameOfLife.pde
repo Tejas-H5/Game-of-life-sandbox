@@ -14,9 +14,10 @@ color backgroundColor = color(0);
 color foregroundColor = color(255);
 color cursorColor = color(0,255,0);
 color cursorPausedColor = color(255,0,0);
-final int GRIDSIZE = 700;
 //-----------------------------------------
 
+//Change this in the text file in the data folder instead of here
+int GRIDSIZE = 100;
 byte[] grid;
 float sW = 10;//width of each individual square cell
 byte[] surroundingMap;//a speed optimization
@@ -71,10 +72,22 @@ void loadPatterns(){
   }
 }
 
+//----------LOAD PREFERENCES ----------
+void loadPrefs(){
+  String[] lines = loadStrings("prefs.txt");
+  try{
+    GRIDSIZE = int(lines[1]);
+  } catch(Exception e){
+    //do nothing
+    println(e.getMessage());
+  }
+}
+
 //----------SETUP----------
 
 void setup(){
-  size(700,700);
+  loadPrefs();
+  size(800,600);
   grid = new byte[(GRIDSIZE)*(GRIDSIZE)];
   surroundingMap = new byte[grid.length];
   
