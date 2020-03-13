@@ -88,6 +88,9 @@ void loadPrefs(){
 void setup(){
   loadPrefs();
   size(800,600);
+  
+  surface.setResizable(true);
+  
   grid = new byte[(GRIDSIZE)*(GRIDSIZE)];
   surroundingMap = new byte[grid.length];
   
@@ -215,7 +218,12 @@ void keyPressed(){
       brushType++;
       brushType%=numBrushShapes;
       break;
-    } 
+    }
+    case('p'):
+    case('P'):{
+      brushType = CUSTOMSHAPES;
+      break;
+    }
     case (' '): {
       play = !play;
       break;
@@ -305,7 +313,8 @@ String[] instructions = {
   "[I] to toggle instructions",
   "Shift+click to pan view",
   "[LMB]/[RMB] to create/kill cells",
-  "[B] to change brush",
+  "[B] to change brush.",
+  "[P] to switch to pattern placing brush",
   "[Mousewheel] to resize brush",
   "[Mousewheel]+[Shift] to rotate brush",
   "[>] to advance 1 step when paused",
@@ -316,10 +325,15 @@ String[] instructions = {
 //----------DRAW INSTRUCTIONS----------
 
 void drawInstructions(){
-  float spacing = 17;
-  textAlign(CENTER);
+  float y = 150;
+  textAlign(CENTER, TOP);
   for(int i = 0; i < instructions.length; i++){
-    text(instructions[i],mouseX,mouseY+i*spacing + 100);
+    float ts = (i==4) ? 27 : 12; 
+    
+    textSize(ts);
+    
+    text(instructions[i],mouseX,mouseY+y);
+    y += ts + 2;
   }
 }
 
